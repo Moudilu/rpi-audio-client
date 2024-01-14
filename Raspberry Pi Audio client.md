@@ -426,3 +426,16 @@ variant = "necx"
 0x807019 = "KEY_9"
 EOF
 ```
+
+## Python script controlling output devices
+
+Install dependencies.
+Could also avoid depending on python lirc by using system calls instead
+```bash
+sudo apt install -y python3-pip
+
+cd OutputDeviceController
+python3 -m venv .venv
+source .venv/bin/activate
+pip install lirc
+```
