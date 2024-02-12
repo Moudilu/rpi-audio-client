@@ -85,13 +85,12 @@ gst-inspect-1.0 spotify
 sudo python3 -m pip install https://github.com/mopidy/mopidy-spotify/archive/master.zip
 
 # Get client secrets on https://mopidy.com/ext/spotify/#authentication
-# credentials from Fabian on 2.7.23
 echo "
 [spotify]
-username = Faebu93
-password = DvjNArB37VBRaAkvJpzB
-client_id = f576f242-19a4-4d2a-a1ce-f75ed9605289
-client_secret = vQ246Z03gOtzWTOMP-v5yPTll0t-0575wO_NSgC22o0=
+username = 
+password = 
+client_id = 
+client_secret = 
 "| sudo tee -a /etc/mopidy/mopidy.conf
 
 sudo systemctl restart mopidy
