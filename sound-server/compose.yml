@@ -1,0 +1,53 @@
+services:
+  snapserver:
+    image: ghcr.io/sweisgerber/snapcast:latest
+    ports:
+      - 1704:1704/tcp # Snapcast audio stream
+      - 1705:1705/tcp # JSON-RPC
+      - 1780:1780/tcp # Snapcast Web Interface
+    environment:
+      - PUID=1000
+      - PGID=1000 # set to audio group ID
+      - TZ=Europe/Zurich
+    networks:
+      - sound-server
+    volumes:
+      - snapcast-fifos:/audio/
+      - ./snapserver.conf/:/config/snapserver.conf:ro
+      - snapcast-data:/data/
+
+  mopidy:
+    image: ghcr.io/sweisgerber/mopidy:latest
+    environment:
+      - PUID=1000 # user ID which the mopidy service will run as, needs permissions to access the music
+      - PGID=1000 # group ID which the mopidy service will run as, needs permissions to access the music
+      - TZ=Europe/Zurich
+      # - DOCKER_MODS=linuxserver/mods:universal-package-install
+      # - INSTALL_PIP_PACKAGES=Mopidy-TuneIn
+      # - INSTALL_PACKAGES=gst-plugins-bad
+    ports:
+      - 6600:6600/tcp # MPD port
+      - 6680:6680/tcp # Mopidy Web Interface
+    networks:
+      - sound-server
+    healthcheck:
+      test: curl -f http://localhost:6680/iris/http/get_config || exit 1
+      timeout: 5s
+      retries: 5
+    volumes:
+      - iris-data:/data/ # Iris-specific storage
+      - ./mopidy.conf:/config/mopidy.conf:ro
+      - /srv/nc-data-no-bkp/Music:/music/:ro
+      - snapcast-fifos:/tmp/snapcast-fifos
+
+networks:
+  sound-server:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: sound-server
+    name: sound-server
+
+volumes:
+  snapcast-fifos:
+  snapcast-data:
+  iris-data:
