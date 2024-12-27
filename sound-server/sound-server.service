@@ -1,0 +1,17 @@
+[Unit]
+Description=Mopidy and Snapcast server
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+# Shutdown container (if running) when unit is started
+ExecStartPre=docker compose -f /opt/sound-server/docker-compose.sound-server.yml down
+# Start container when unit is started
+ExecStart=docker compose -f /opt/sound-server/docker-compose.sound-server.yml up --pull always
+# Stop container when unit is stopped
+ExecStop=docker compose -f /opt/sound-server/docker-compose.sound-server.yml down
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,43 @@
+services:
+  snapserver:
+    image: jaedb/snapserver
+    depends_on:
+      mopidy:
+        condition: service_healthy
+    ports:
+      - 1704:1704/tcp # Snapcast audio stream
+      - 1705:1705/tcp # JSON-RPC
+      - 1780:1780/tcp # Snapcast Web Interface
+    networks:
+      - sound-server
+    volumes:
+      - /tmp/sound-server:/tmp
+      - /etc/sound-server/snapserver.conf:/etc/snapserver.conf:ro
+      - /etc/sound-server/snapserver.json:/root/.config/snapserver/server.json
+  mopidy:
+    image: jaedb/iris
+    environment:
+      PIP_PACKAGES: #Mopidy-YTMusic Mopidy-Tidal Mopidy-SoundCloud Mopidy-MusicBox-Webclient
+    ports:
+      - 6600:6600/tcp # MPD port
+      - 6680:6680/tcp # Mopidy Web Interface
+    networks:
+      - sound-server
+    healthcheck:
+      test: curl -f http://localhost:6680/iris/http/get_config || exit 1
+      timeout: 5s
+      retries: 5
+    volumes:
+      # - ./mopidy/iris:/iris/mopidy/iris # To use a locally-built UI 
+      - /var/lib/mopidy/iris:/var/lib/mopidy/iris # Iris-specific storage
+      - /var/lib/mopidy/m3u:/var/lib/mopidy/m3u # To persist local playlists
+      - /etc/sound-server/mopidy.conf:/config/mopidy.conf:ro
+      - /srv/nc-data-no-bkp/Music:/var/lib/mopidy/media:ro
+      - /tmp/sound-server:/tmp
+
+networks:
+  sound-server:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: sound-server
+    name: sound-server

@@ -1,0 +1,25 @@
+table inet filter {
+        chain forward {
+                # Allow traffic to a port in the docker network
+                # Matches packets to a specified network (find with ip a)
+                # Dport is the destination port on the container!
+
+                # Snapcast ports
+                # Audio stream
+                oifname "sound-server" tcp dport 1704 accept
+                # JSON-RPC port
+                oifname "sound-server" tcp dport 1705 accept
+                # Web interface, maybe not needed
+                oifname "sound-server" tcp dport 1780 accept
+
+                # Mopidy
+                # MPD interface, maybe not needed
+                # oifname "sound-server" tcp dport 6600 accept
+                # Mopidy Web interface
+                oifname "sound-server" tcp dport 6680 accept
+
+                # Allow outgoing traffic, initiated by docker containers
+                # This includes container-container and container-world traffic 
+                iifname "sound-server" accept
+        }
+}
