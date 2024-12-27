@@ -32,40 +32,105 @@ sudo systemctl enable disable-led.service
 sudo systemctl start disable-led.service
 ```
 
-## Mopidy
+## Mopidy & Iris
 
-https://docs.mopidy.com/en/latest/installation/raspberrypi/#raspberrypi-installation
-https://docs.mopidy.com/en/latest/installation/debian/#debian-install
+https://docs.mopidy.com/en/latest/installation/raspberrypi/#raspberrypi-installation  
+https://docs.mopidy.com/en/latest/installation/debian/#debian-install  
 https://docs.mopidy.com/en/latest/running/service/
 
 ```bash
 sudo mkdir -p /etc/apt/keyrings
 sudo wget -q -O /etc/apt/keyrings/mopidy-archive-keyring.gpg \
   https://apt.mopidy.com/mopidy.gpg
-sudo wget -q -O /etc/apt/sources.list.d/mopidy.list https://apt.mopidy.com/bullseye.list
+sudo wget -q -O /etc/apt/sources.list.d/mopidy.list https://apt.mopidy.com/bookworm.list
 sudo apt update
 sudo apt install mopidy
 
 sudo systemctl enable mopidy
 
 sudo apt install python3-pip
-sudo python3 -m pip install Mopidy-Iris
-sudo sh -c 'echo "mopidy  ALL=NOPASSWD:   /usr/local/lib/python3.9/dist-packages/mopidy_iris/system.sh" >> /etc/sudoers'
+sudo python3 -m pip install Mopidy-Iris --break-system-packages
+sudo sh -c 'echo "mopidy  ALL=NOPASSWD:   /usr/local/lib/python3.*/dist-packages/mopidy_iris/system.sh" >> /etc/sudoers.d/010_mopidy'
 
 # TODO: Move core/cache to a tmpfs/memorylocation
 
 # Web available on all network interfaces
 echo "[http]
-hostname = ::" | sudo tee -a /etc/mopidy/mopidy.conf
+hostname = ::
+# set this to all domains you want to be able to reach the Mopidy backend from
+# required for CSRF protection
+allowed_origins = sound.home,sound.home:6680,192.168.0.10,192.168.0.10:6680
 
-echo "
-[file]
-media_dirs = /home/fabian/Music" | sudo tee -a /etc/mopidy/mopidy.conf
+[iris]
+country = CH
+locale = de_CH
+snapcast_enabled = true
+snapcast_host = 192.168.0.10
+snapcast_stream = Mopidy
+" | sudo tee -a /etc/mopidy/mopidy.conf
 
 sudo systemctl restart mopidy
 ```
 
-### Instal mopidy-spotify
+### Install nginx proxy
+https://github.com/jaedb/Iris/wiki/Advanced#nginx
+
+TODO: Enable SSL Proxy
+TODO: Spotify default login necessary?
+
+```sh
+sudo apt install nginx
+sudo rm /etc/nginx/sites-enabled/default
+sudo tee /etc/nginx/sites-available/mopidy-proxy <<'EOF'
+server {
+        listen 80;
+
+        # Set to "_" to listen to all domains
+        server_name  _;
+
+        proxy_http_version 1.1;
+        proxy_read_timeout 600s;
+        location = / {
+                return 301 /iris/;
+        }
+
+        location / {
+                proxy_pass http://localhost:6680;
+                proxy_set_header Upgrade $http_upgrade;
+                proxy_set_header Connection $http_connection;
+        }
+}
+
+#server {
+#        listen 443 ssl;
+#
+#        # Set to "_" to listen to all domains
+#        server_name  _;
+#
+#        # Update the following to reflect your certificate and key location
+#        ssl on;
+#        ssl_certificate PATH_TO_CERTICICATE_HERE;
+#        ssl_certificate_key PATH_TO_CERTICICATE_KEY_HERE;
+#
+#        proxy_http_version 1.1;
+#        proxy_read_timeout 600s;
+#        location = / {
+#                return 301 /iris/;
+#        }
+#
+#        location / {
+#                proxy_pass http://localhost:6680;
+#                proxy_set_header Upgrade $http_upgrade;
+#                proxy_set_header Connection $http_connection;
+#        }
+#}
+EOF
+sudo ln -s /etc/nginx/sites-available/mopidy-proxy /etc/nginx/sites-enabled/mopidy-proxy
+sudo systemctl reload nginx
+```
+
+
+### Install mopidy-spotify
 
 https://github.com/mopidy/mopidy-spotify
 
@@ -82,16 +147,19 @@ sudo install -m 644 target/release/libgstspotify.so $(pkg-config --variable=plug
 # Verify the plugin is available
 gst-inspect-1.0 spotify
 
-sudo python3 -m pip install https://github.com/mopidy/mopidy-spotify/archive/master.zip
+sudo python3 -m pip install --break-system-packages https://github.com/mopidy/mopidy-spotify/archive/master.zip
 
 # Get client secrets on https://mopidy.com/ext/spotify/#authentication
 echo "
 [spotify]
+# put your credentials here
 username = 
 password = 
+# Get client secrets on https://mopidy.com/ext/spotify/#authentication
 client_id = 
 client_secret = 
 "| sudo tee -a /etc/mopidy/mopidy.conf
+sudo vi /etc/mopidy/mopidy.conf
 
 sudo systemctl restart mopidy
 
@@ -102,10 +170,11 @@ sudo systemctl restart mopidy
 
 ```bash
 # Find latest release on https://github.com/badaix/snapcast/releases
-cd ~
-wget https://github.com/badaix/snapcast/releases/download/v0.27.0/snapserver_0.27.0-1_armhf.deb
-sudo apt install ~/snapserver_0.27.0-1_armhf.deb
-sudo pip install websocket-client
+# Snapcast 0.27 was not able to install on Debian Bookworm, might want to find the latest working package under https://github.com/badaix/snapcast/actions/workflows/package.yml - need to download the artefact to your local machine and upload the packages to the Pi
+#cd ~
+#wget https://github.com/badaix/snapcast/releases/download/v0.27.0/snapserver_0.27.0-1_armhf.deb
+sudo apt install ~/snapserver_0.27.0-1_arm64.deb
+sudo pip install --break-system-packages websocket-client
 
 # Create and enable loopback ALSA device
 #sudo modprobe snd-aloop # probably not card 0 after that, need to reboot
@@ -115,8 +184,15 @@ sudo reboot
 aplay -l
 
 # configure snapservers inputs
+# For the Spotify stream to work, you need to have the librespot binary installed (e. g. by installing raspotify)
 # ampersands had to be escaped
-sudo sed -i 's|^source = pipe:///tmp/snapfifo?name=default|# source = pipe:///tmp/snapfifo?name=default \nsource = alsa:///?name=Mopidy 1\&device=hw:0,1,0\&controlscript=meta_mopidy.py|g' /etc/snapserver.conf
+# TODO: configure librespot cache to a tmpfs
+# TODO: librespot seems to be not controllable via snapclients, is this the case, can this be achieved?
+sudo sed -i 's|^source = pipe:///tmp/snapfifo?name=default|# source = pipe:///tmp/snapfifo?name=default \nsource = alsa:///?name=Mopidy\&device=hw:0,1,0\&controlscript=meta_mopidy.py \nsource = librespot:///usr/bin/librespot?name=Spotify Multiroom\&devicename=Multiroom \nsource = meta:///Mopidy/Spotify Multiroom?name=Mopidy oder Spotify Multiroom|g' /etc/snapserver.conf
+
+# Configure the hostname and that the service can be reached on any IPv4 and IPv6 address
+sudo sed -i 's|^#host = <hostname>|host = stube.home|g' /etc/snapserver.conf
+sudo sed -i 's|^#bind_to_address = 0.0.0.0|bind_to_address = ::|g' /etc/snapserver.conf
 
 # configure Mopidy to output to loopback device
 echo "
@@ -128,18 +204,21 @@ sudo systemctl restart mopidy
 sudo systemctl restart snapserver
 ```
 
+Optionally build the snapweb react client from the [git repo](https://github.com/badaix/snapweb/tree/react).
+
 ## Snapcast client
 
 TODO: Choose mixer via Snapclient opts, see https://github.com/badaix/snapcast/issues/318#issuecomment-625742834
 
 ```bash
 # Find latest release on https://github.com/badaix/snapcast/releases
+# might want to install the arm64 package dowloaded in the snapserver step instead
 cd ~
-wget https://github.com/badaix/snapcast/releases/download/v0.27.0/snapclient_0.27.0-1_without-pulse_armhf.deb
-sudo apt install ~/snapclient_0.27.0-1_without-pulse_armhf.deb
+#wget https://github.com/badaix/snapcast/releases/download/v0.27.0/snapclient_0.27.0-1_without-pulse_armhf.deb
+sudo apt install ~/snapclient_0.27.0-1_without-pulse_arm64.deb
 
 # Find name or number of the soundcard with snapclient -l
-sudo sed -i 's/SNAPCLIENT_OPTS=""/SNAPCLIENT_OPTS="-s plughw:CARD=IQaudIODAC"/g' /etc/default/snapclient
+sudo sed -i 's/SNAPCLIENT_OPTS=""/SNAPCLIENT_OPTS="--soundcard plughw:CARD=IQaudIODAC"/g' /etc/default/snapclient
 # TODO: Mixer argument (is default software, maybe HW?)
 
 sudo systemctl restart snapclient
