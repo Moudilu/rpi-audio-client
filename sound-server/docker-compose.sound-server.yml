@@ -1,19 +1,51 @@
 services:
-  snapserver:
-    image: jaedb/snapserver
-    depends_on:
-      mopidy:
-        condition: service_healthy
-    ports:
-      - 1704:1704/tcp # Snapcast audio stream
-      - 1705:1705/tcp # JSON-RPC
-      - 1780:1780/tcp # Snapcast Web Interface
+snapserver:
+    image: 'ghcr.io/firefrei/snapcast/server:latest'
+    restart: always
+    #cap_add:
+      #- NET_BIND_SERVICE   # Optional: allow container to bind privileged ports (>1024)
+    environment:
+      # See README.md for all environment options.
+      TZ: Europe/Zurich
+      # NGINX_ENABLED: "1"  # enable NGINX for HTTPS -> requires to bind to port 443 by default
+      #NGINX_HTTPS_PORT: "4433"  # use port 4433 instead of 4433
+    volumes:
+      # Snapcast: Configuration and run-time data
+      - snapcast-data:/app/data/
+      #- snapcast-config:/app/config/
+      #- ./config_snapcast/:/app/config/
+
+      # NGINX: HTTPS certificates
+      # nginx-certs:/app/certs/
+      #- ./nginx_certs/:/app/certs/
+
+
+    # Network Alternative 1: Bridge container directly into your home network
+    #networks:
+      #bridged-home-network:
+        #ipv4_address: <desired-ip-of-container>
+
+    # Network Alternative 2: Use port-forwarding of host ports
     networks:
       - sound-server
-    volumes:
-      - /tmp/sound-server:/tmp
-      - /etc/sound-server/snapserver.conf:/etc/snapserver.conf:ro
-      - /etc/sound-server/snapserver.json:/root/.config/snapserver/server.json
+    ports:
+      # Snapcast Ports
+      - '1704-1705:1704-1705'
+      - '1780:1780'
+      # AirPlay ports
+      - '3689:3689'
+      - '5000:5000'
+      - '6000-6009:6000-6009/udp'
+      # AirPlay-2 ports
+      #- '319-320:319-320/udp'
+      #- '3689:3689'
+      #- '5000:5000'
+      #- '7000:7000'
+      #- '6000-6009:6000-6009/udp'
+      # Avahi ports
+      - '5353:5353'
+      # NGINX ports
+      # - '443:443'
   mopidy:
     image: jaedb/iris
     environment:
@@ -34,6 +66,10 @@ services:
       - /etc/sound-server/mopidy.conf:/config/mopidy.conf:ro
       - /srv/nc-data-no-bkp/Music:/var/lib/mopidy/media:ro
       - /tmp/sound-server:/tmp
+volumes:
+  #snapcast-config:
+  snapcast-data:
+  nginx-certs:
 
 networks:
   sound-server:
