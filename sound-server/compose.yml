@@ -1,16 +1,11 @@
 services:
   snapserver:
     image: ghcr.io/sweisgerber/snapcast:latest
-    ports:
-      - 1704:1704/tcp # Snapcast audio stream
-      - 1705:1705/tcp # JSON-RPC
-      - 1780:1780/tcp # Snapcast Web Interface
     environment:
       - PUID=1000
       - PGID=1000 # set to audio group ID
       - TZ=Europe/Zurich
-    networks:
-      - sound-server
+    network_mode: "host"
     volumes:
       - snapcast-fifos:/audio/
       - ./snapserver.conf/:/config/snapserver.conf:ro
