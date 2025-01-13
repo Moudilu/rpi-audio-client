@@ -5,7 +5,9 @@ services:
       - PUID=1000
       - PGID=1000 # set to audio group ID
       - TZ=Europe/Zurich
-    network_mode: "host"
+    networks:
+      snapcast-ipvlan:
+        ipv4_address: 192.168.0.20
     volumes:
       - snapcast-fifos:/audio/
       - ./snapserver.conf/:/config/snapserver.conf:ro
@@ -41,6 +43,16 @@ networks:
     driver_opts:
       com.docker.network.bridge.name: sound-server
     name: sound-server
+  snapcast-ipvlan:
+    driver: ipvlan
+    driver_opts:
+      parent: enp0s31f6
+      # to enable mDNS (which advertises the Spotify Connect service), the container must receive Multicast packets
+      ipvlan_mode: l2
+    ipam:
+      config:
+        - subnet: 192.168.0.0/24
+          gateway: 192.168.0.1
 
 volumes:
   snapcast-fifos:
