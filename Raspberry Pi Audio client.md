@@ -67,30 +67,33 @@ Connect the fan like this:
 
 ## Set default ALSA output
 
-Find the name of the desired audio device with `cat /proc/asound/card*/id`
-
 Set the default sound card:
 
 ```bash
+echo "Find the name of the desired default audio device"
+cat /proc/asound/card*/id
 read -p "Enter the name of your default sound card:" DEVICE
-envsubst ./audio-client/.asoundrc > ~/.asoundrc
+cat ./audio-client/.asoundrc | DEVICE=$DEVICE envsubst > ~/.asoundrc
 # Link sound configuration to default/root configuration
 sudo ln -s ~/.asoundrc /etc/asound.conf
 ```
+
+Check and set the volume to 100% with `alsamixer`.
 
 ## Snapcast client
 
 TODO: Choose mixer via Snapclient opts, see https://github.com/badaix/snapcast/issues/318#issuecomment-625742834
 
 ```bash
-# Find latest release on https://github.com/badaix/snapcast/releases
-# might want to install the arm64 package dowloaded in the snapserver step instead
-cd ~
-#wget https://github.com/badaix/snapcast/releases/download/v0.27.0/snapclient_0.27.0-1_without-pulse_armhf.deb
-sudo apt install ~/snapclient_0.27.0-1_without-pulse_arm64.deb
+# Activate the debian backports repository, to get a newer version of snapcast
+source /etc/os-release
+echo "deb http://deb.debian.org/debian $VERSION_CODENAME-backports main" | sudo tee /etc/apt/sources.list.d/backports.list
+sudo apt update
+
+sudo apt install -t $VERSION_CODENAME-backports snapclient
 
 # Find name or number of the soundcard with snapclient -l
-sudo sed -i 's/SNAPCLIENT_OPTS=""/SNAPCLIENT_OPTS="--soundcard plughw:CARD=IQaudIODAC"/g' /etc/default/snapclient
+echo "SNAPCLIENT_OPTS=\"--soundcard plughw:CARD=$DEVICE --host 192.168.0.20\"" | sudo tee /etc/default/snapclient
 # TODO: Mixer argument (is default software, maybe HW?)
 
 sudo systemctl restart snapclient
