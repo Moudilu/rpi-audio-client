@@ -1,5 +1,29 @@
 # Raspberry Pi Audio Client Installation notes
 
+Installing on a Raspberry Pi OS Lite 64-bit
+
+Update with 
+
+```bash
+sudo apt update
+sudo apt upgrade
+```
+
+Clone this repository with 
+
+```bash
+sudo apt install git
+git clone https://github.com/Faebu93/rpi-audio-client.git
+cd rpi-audio-client
+```
+
+Some of the following commands assume that you are in the folder `rpi-audio-client`.
+
+## Disable passwordless sudo
+
+```bash
+sudo rm /etc/sudoers.d/010_pi-nopasswd
+```
 Installing on a Raspberry Pi OS Lite 64-bit (Released 2023-05-03)
 
 First find desired audio output: `cat /proc/asound/card*/id`
@@ -13,21 +37,8 @@ Link sound configuration to default/root configuration: `sudo ln -s ~/.asoundrc 
 https://n.ethz.ch/~dbernhard/disable-led-on-a-raspberry-pi.html
 
 ```bash
-sudo tee "/etc/systemd/system/disable-led.service" > /dev/null <<'EOF'
-[Unit]
-Description=Disables the power-LED and active-LED
-After=multi-user.target
-
-[Service]
-Type=oneshot
-RemainAfterExit=yes
-ExecStart=sh -c "echo 0 | sudo tee /sys/class/leds/PWR/brightness > /dev/null"
-ExecStop=sh -c "echo 1 | sudo tee /sys/class/leds/PWR/brightness > /dev/null"
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
+sudo install ./audio-client/disable-led.service /etc/systemd/system
+sudo systemctl daemon-reload
 sudo systemctl enable disable-led.service
 sudo systemctl start disable-led.service
 ```
@@ -62,6 +73,14 @@ Connect the fan like this:
                                    
 (created by AACircuit.py © 2020 JvO) 
 ```
+
+## Set default ALSA output
+
+First find desired audio output: `cat /proc/asound/card*/id`
+
+Set default audio output to the desired one (#TODO: test command): `sudo sed -i 's/card 0/card E30/g' ~/.asoundrc` - file needs to be created first, e. g. by setting the sound output with `sudo raspi-config`, maybe better to set name of soundcard instead of number, document how to find this
+
+Link sound configuration to default/root configuration: `sudo ln -s ~/.asoundrc /etc/asound.conf`
 
 ## Snapcast client
 
