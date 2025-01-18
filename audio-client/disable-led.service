@@ -1,0 +1,12 @@
+[Unit]
+Description=Disables the power-LED and active-LED
+After=multi-user.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=echo 0 > /sys/class/leds/PWR/brightness
+ExecStop=echo 1 > /sys/class/leds/PWR/brightness 
+
+[Install]
+WantedBy=multi-user.target
