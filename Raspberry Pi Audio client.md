@@ -32,6 +32,37 @@ sudo systemctl enable disable-led.service
 sudo systemctl start disable-led.service
 ```
 
+## Enable the fan
+
+This enables the fan on pin 18 when temperature exceeds 80°C.
+
+```bash
+sudo tee -a /boot/firmware/config.txt > /dev/null <<'EOF'
+[all]
+dtoverlay=gpio-fan,gpiopin=18,temp=80000
+EOF
+```
+
+Connect the fan like this:
+
+```                                                  
+                   +5V                                                  
+                    ^                                                   
+                    |                                                   
+                   .-.                                                  
+                  ( X )                                                 
+                   '-'                                                  
+                    |                                                   
+                    |                                                   
+            ___   |/                                                    
+   Pin 18 -|___|--|  NPN General Purpose transistor                     
+            500R  |>                                                    
+                    |                                                   
+                   GND
+                                   
+(created by AACircuit.py © 2020 JvO) 
+```
+
 ## Mopidy & Iris
 
 https://docs.mopidy.com/en/latest/installation/raspberrypi/#raspberrypi-installation  
@@ -342,115 +373,40 @@ sudo reboot
 ```
 
 ## Remote support for Harman Kardon HK970
-```bash
-# Add IR devices in /boot/config.txt:
 
-echo "dtoverlay=gpio-ir,gpio_pin=26,invert=0,gpio_pull=off,rc-map-name=hk970" | sudo tee -a /boot/config.txt
-echo "dtoverlay=gpio-ir-tx,gpio_pin=19" | sudo tee -a /boot/config.txt
+Wire up the IR 3.5mm in-/output of the receiver as follows:
+
+```
+                ___                                                     
+AVR INPUT  o---|___|-o RPi Pin 5                                         
+                100R                                                    
+AVR OUTPUT o-                                                           
+            |                                                           
+           .-.                                                          
+           | |                                                          
+           | |1K                                                        
+           '-'                                                          
+            |                                                           
+            +--------o RPi Pin 25                                        
+           .-.                                                          
+           | |                                                          
+           | |1K                                                        
+           '-'                                                          
+            |   ___                                                     
+AVR GND   o-+--|___|-o RPi GND                                           
+                33R                                      
+
+(created by AACircuit.py © 2020 JvO)               
+```
+
+```bash
+# Add IR devices in config.txt:
+echo "dtoverlay=gpio-ir,gpio_pin=25,invert=0,gpio_pull=off,rc-map-name=hk970" | sudo tee -a /boot/firmware/config.txt
+echo "dtoverlay=gpio-ir-tx,gpio_pin=5" | sudo tee -a /boot/firmware/config.txt
 
 sudo apt -y install lirc
 
-# File /etc/lirc/lircd.conf.d/HK970.lirc.conf:
-sudo tee "/etc/lirc/lircd.conf.d/HK970.lirc.conf" > /dev/null <<'EOF'
-# This config file was automatically generated
-# using lirc-0.10.1(default) on Sat Dec 30 15:09:57 2023
-# Command line used: -ku --disable-namespace HK970.conf
-# Kernel version (uname -r): 6.1.21-v8+
-#
-# Remote name (as of config file): HK970
-# Brand of remote device, the thing you hold in your hand: Harman Kardon
-# Remote device model nr: HK970
-# Remote device info url:
-# Does remote device has a bundled capture device e. g., a
-#     usb dongle? : no
-#                   Config file was recorded connecting the IR OUT port of the 
-#                   receiver to a GPIO pin of a Raspberry Pi 4, adding
-#                   dtoverlay=gpio-ir,gpio_pin=26,invert=0,gpio_pull=off
-#                   to /boot/config.txt
-# Type of device controlled
-#     (TV, VCR, Audio, DVD, Satellite, Cable, HTPC, ...) : Receiver/Amp
-# Device(s) controlled by this remote:
-#     Harman Kardon HK970
-#
-# The remote used the Extended NEC protocol. While the NEC protocol specifies 
-# that the least significant bits of each byte are sent first, the values 
-# required by LIRC are most significant bit first within each byte.
-# 
-# Keys on the remote are labled exactly as their corresponding code label,
-# otherwhise the label on the remote is indicated in the comment.
-# The RDS key is not recorded, as it has, strangely enough, a different device
-# address.
-
-begin remote
-
-  name  HK970
-  bits           16
-  flags SPACE_ENC
-  eps            20
-  aeps          200
-
-  header       9000  4500
-  one           563  1687
-  zero          563   562
-  ptrail        563
-  repeat       9000  2250
-  pre_data_bits  16
-  pre_data   0x010E
-  gap         46437
-  repeat_gap  98187
-  min_repeat      0
-  toggle_bit_mask 0
-  frequency   38000
-  duty_cycle     30
-
-      begin codes
-          KEY_POWER                0x03FC # POWER ON
-          KEY_SLEEP                0xF906 # POWER OFF
-          KEY_VOLUMEUP             0xE31C
-          KEY_VOLUMEDOWN           0x13EC
-          KEY_PLAYPAUSE            0x40BF
-          KEY_10CHANNELSDOWN       0x906F # 10+
-          KEY_10CHANNELSUP         0x10EF # 10-
-          KEY_CD                   0x23DC
-          KEY_TUNER                0xC33C
-          KEY_TV                   0xCB34
-          KEY_TAPE                 0x33CC
-          KEY_AUX                  0xA35C
-          KEY_MODE                 0x7B84
-          KEY_PREVIOUS             0xA05F
-          KEY_NEXT                 0x20DF
-          KEY_REWIND               0xE01F # Search backwards
-          KEY_STOP                 0x807F # Search forward
-          KEY_FORWARD              0x609F
-          KEY_EJECTCLOSECD         0x00FF # Open/Close
-          KEY_MEDIA_REPEAT         0x50AF
-          KEY_SHUFFLE              0xB24D # Random
-          KEY_SCROLLUP             0x21DE
-          KEY_SCROLLDOWN           0xA15E
-          KEY_MUTE                 0x837C
-          KEY_SELECT               0x15EA
-          KEY_0                    0x58A7
-          KEY_1                    0x8877
-          KEY_2                    0x48B7
-          KEY_3                    0xC837
-          KEY_4                    0x28D7
-          KEY_5                    0xA857
-          KEY_6                    0x6897
-          KEY_7                    0xE817
-          KEY_8                    0x18E7
-          KEY_9                    0x9867
-          key_PHONO                0x43BC
-          key_CDR                  0xAB54
-          key_FOLDERUP             0x7887
-          key_FOLDERDOWN           0xF807
-          key_BAND                 0x817E
-          key_FMMODE               0xC936
-          key_AUTO                 0x8976
-      end codes
-
-end remote
-EOF
-
+sudo install ./audio-client/HK970.lirc.conf /etc/lirc/lircd.conf.d
 # Change values in /etc/lirc/lirc_options.conf:
 sudo sed -i "s/driver          = devinput/driver          = default/g" /etc/lirc/lirc_options.conf
 sudo sed -i "s|device          = auto|device          = /dev/lirc0|g" /etc/lirc/lirc_options.conf
@@ -460,49 +416,15 @@ sudo apt install ir-keytable
 # add line to /etc/rc_maps.cfg:
 echo "*       *                        hk970.toml" | sudo tee -a /etc/rc_maps.cfg
 
-# File /etc/rc_keymaps/hk970.toml:
-sudo tee "/etc/rc_keymaps/hk970.toml" > /dev/null <<'EOF'
-[[protocols]]
-name = "HK970"
-protocol = "nec"
-variant = "necx"
-[protocols.scancodes]
-0x8070C0 = "KEY_POWER"
-0x80709F = "KEY_SLEEP"
-0x8070C7 = "KEY_VOLUMEUP"
-0x8070C8 = "KEY_VOLUMEDOWN"
-0x807002 = "KEY_PLAYPAUSE"
-0x807009 = "KEY_10CHANNELSDOWN"
-0x807008 = "KEY_10CHANNELSUP"
-0x8070C4 = "KEY_CD"
-0x8070C3 = "KEY_TUNER"
-0x8070D3 = "KEY_TV"
-0x8070CC = "KEY_TAPE"
-0x8070C5 = "KEY_AUX"
-0x8070DE = "KEY_MODE"
-0x807005 = "KEY_PREVIOUS"
-0x807004 = "KEY_NEXT"
-0x807007 = "KEY_REWIND"
-0x807001 = "KEY_STOP"
-0x807006 = "KEY_FORWARD"
-0x807000 = "KEY_EJECTCLOSECD"
-0x80700A = "KEY_MEDIA_REPEAT"
-0x80704D = "KEY_SHUFFLE"
-0x807084 = "KEY_SCROLLUP"
-0x807085 = "KEY_SCROLLDOWN"
-0x8070C1 = "KEY_MUTE"
-0x8070A8 = "KEY_SELECT"
-0x80701A = "KEY_0"
-0x807011 = "KEY_1"
-0x807012 = "KEY_2"
-0x807013 = "KEY_3"
-0x807014 = "KEY_4"
-0x807015 = "KEY_5"
-0x807016 = "KEY_6"
-0x807017 = "KEY_7"
-0x807018 = "KEY_8"
-0x807019 = "KEY_9"
-EOF
+sudo install ./audio-client/hk970.toml /etc/rc_keymaps
+```
+
+
+Commands that may or may not help in finding and testing those keymaps:
+
+```bash
+sudo evtest
+sudo irsend -# 11 SEND_ONCE HK970 KEY_VOLUMEUP
 ```
 
 ## Python script controlling output devices
