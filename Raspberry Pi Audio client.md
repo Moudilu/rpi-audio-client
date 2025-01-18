@@ -42,10 +42,7 @@ sudo systemctl start disable-led.service
 This enables the fan on pin 18 when temperature exceeds 80°C.
 
 ```bash
-sudo tee -a /boot/firmware/config.txt > /dev/null <<'EOF'
-[all]
-dtoverlay=gpio-fan,gpiopin=18,temp=80000
-EOF
+echo "dtoverlay=gpio-fan,gpiopin=18,temp=80000" | sudo tee -a /boot/firmware/config.txt
 ```
 
 Connect the fan like this:
@@ -70,11 +67,16 @@ Connect the fan like this:
 
 ## Set default ALSA output
 
-First find desired audio output: `cat /proc/asound/card*/id`
+Find the name of the desired audio device with `cat /proc/asound/card*/id`
 
-Set default audio output to the desired one (#TODO: test command): `sudo sed -i 's/card 0/card E30/g' ~/.asoundrc` - file needs to be created first, e. g. by setting the sound output with `sudo raspi-config`, maybe better to set name of soundcard instead of number, document how to find this
+Set the default sound card:
 
-Link sound configuration to default/root configuration: `sudo ln -s ~/.asoundrc /etc/asound.conf`
+```bash
+read -p "Enter the name of your default sound card:" DEVICE
+envsubst ./audio-client/.asoundrc > ~/.asoundrc
+# Link sound configuration to default/root configuration
+sudo ln -s ~/.asoundrc /etc/asound.conf
+```
 
 ## Snapcast client
 
