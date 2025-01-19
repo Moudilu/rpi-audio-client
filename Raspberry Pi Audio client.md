@@ -110,13 +110,18 @@ sudo apt-get -y install curl && curl -sL https://dtcooper.github.io/raspotify/in
 Configure device name, bitrate etc
 
 ```bash
-sudo sed -i 's/LIBRESPOT_AUTOPLAY=/#LIBRESPOT_AUTOPLAY=/g' /etc/raspotify/conf
-sudo sed -i 's/#LIBRESPOT_NAME="Librespot"/LIBRESPOT_NAME="Stube"/g' /etc/raspotify/conf
-sudo sed -i 's/#LIBRESPOT_BITRATE="160"/LIBRESPOT_BITRATE="320"/g' /etc/raspotify/conf
-sudo sed -i 's/#LIBRESPOT_DEVICE_TYPE="speaker"/LIBRESPOT_DEVICE_TYPE="avr"/g' /etc/raspotify/conf
-sudo sed -i 's/#LIBRESPOT_DEVICE="default"/LIBRESPOT_DEVICE="hw:CARD=E30,DEV=0"/g' /etc/raspotify/conf
-sudo sed -i 's/#LIBRESPOT_FORMAT="S16"/LIBRESPOT_FORMAT="S32"/g' /etc/raspotify/conf
-echo -e '\n#Use Alsa mixer\nLIBRESPOT_MIXER="alsa"\nLIBRESPOT_ALSA_MIXER_CONTROL="E30 "\nLIBRESPOT_VOLUME_CTRL="linear"\n' | sudo tee -a /etc/raspotify/conf
+sudo tee -a /etc/raspotify/conf << EOF
+LIBRESPOT_AUTOPLAY=off
+LIBRESPOT_NAME="$(hostname)"
+LIBRESPOT_BITRATE="320"
+LIBRESPOT_DEVICE_TYPE="avr"
+LIBRESPOT_DEVICE="hw:CARD=${DEVICE}"
+LIBRESPOT_FORMAT="S32"
+#Use Alsa Mixer
+#LIBRESPOT_MIXER="alsa"
+#LIBRESPOT_ALSA_MIXER_CONTROL="${DEVICE}"
+#LIBRESPOT_VOLUME_CTRL="linear"
+EOF
 
 sudo systemctl restart raspotify
 ```
@@ -216,6 +221,18 @@ sudo sed -i 's|exit 0|#Start BT pairing agent\n/opt/bluetooth-pairing/btscript.s
 sudo reboot
 ```
 
+## Enable automatic upgrades
+
+```bash
+sudo apt install unattended-upgrades
+sudo tee /etc/apt/apt.conf.d/60UnattendedUpgardesUser << 'EOF'
+Unattended-Upgrade::Origins-Pattern {
+    "origin=Raspberry Pi Foundation,codename=${distro_codename}";
+    "codename=raspotify"
+}
+EOF
+```
+
 ## Remote support for Harman Kardon HK970
 
 Wire up the IR 3.5mm in-/output of the receiver as follows:
@@ -261,14 +278,17 @@ sudo apt install ir-keytable
 echo "*       *                        hk970.toml" | sudo tee -a /etc/rc_maps.cfg
 
 sudo install ./audio-client/hk970.toml /etc/rc_keymaps
+
+sudo reboot
 ```
 
 
 Commands that may or may not help in finding and testing those keymaps:
 
 ```bash
-sudo evtest
-sudo irsend -# 11 SEND_ONCE HK970 KEY_VOLUMEUP
+sudo apt install evtest
+evtest
+irsend -# 11 SEND_ONCE HK970 KEY_VOLUMEUP
 ```
 
 ## Python script controlling output devices
