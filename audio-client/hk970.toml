@@ -1,10 +1,11 @@
+# available keycodes can be found in /usr/include/linux/input-event-codes.h
 [[protocols]]
 name = "HK970"
 protocol = "nec"
 variant = "necx"
 [protocols.scancodes]
-0x8070C0 = "KEY_POWER"
-0x80709F = "KEY_SLEEP"
+0x8070C0 = "KEY_POWER" # ON
+0x80709F = "KEY_SLEEP" # OFF
 0x8070C7 = "KEY_VOLUMEUP"
 0x8070C8 = "KEY_VOLUMEDOWN"
 0x807002 = "KEY_PLAYPAUSE"

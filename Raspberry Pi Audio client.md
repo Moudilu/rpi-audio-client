@@ -265,6 +265,9 @@ AVR GND   o-+--|___|-o RPi GND
 echo "dtoverlay=gpio-ir,gpio_pin=25,invert=0,gpio_pull=off,rc-map-name=hk970" | sudo tee -a /boot/firmware/config.txt
 echo "dtoverlay=gpio-ir-tx,gpio_pin=5" | sudo tee -a /boot/firmware/config.txt
 
+# Power key shall not trigger a shutdown
+sudo install -D -t /etc/systemd/logind.conf.d ./audio-client/60-disable-powerkey.conf 
+
 sudo apt -y install lirc
 
 sudo install ./audio-client/HK970.lirc.conf /etc/lirc/lircd.conf.d
