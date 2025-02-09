@@ -296,13 +296,12 @@ irsend -# 11 SEND_ONCE HK970 KEY_VOLUMEUP
 
 ## Python script controlling output devices
 
-Install dependencies.
-Could also avoid depending on python lirc by using system calls instead
 ```bash
-sudo apt install -y python3-pip
-
-cd OutputDeviceController
-python3 -m venv .venv
-source .venv/bin/activate
-pip install lirc
+sudo apt install pipx
+sudo PIPX_HOME=/opt/pipx PIPX_BIN_DIR=/usr/local/bin pipx install git+https://github.com/Moudilu/audio_controller.git
+sudo install ./audio-client/audio-controller.service /etc/systemd/system
+sudo systemctl daemon-reload
+sudo systemctl enable --now audio-controller
 ```
+
+To update the audio-controller project, run `sudo PIPX_HOME=/opt/pipx PIPX_BIN_DIR=/usr/local/bin pipx upgrade git+https://github.com/Moudilu/audio_controller.git` or `sudo PIPX_HOME=/opt/pipx PIPX_BIN_DIR=/usr/local/bin pipx upgrade-all` to upgrade any global pipx packages.
