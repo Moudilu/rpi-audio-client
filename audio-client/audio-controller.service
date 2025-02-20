@@ -1,0 +1,12 @@
+[Unit]
+Description=Control and monitor audio output stack
+After=multi-user.target
+
+[Service]
+Type=simple
+ExecStart=audio_controller
+# Use temporary, unprivileged user
+DynamicUser=true
+
+[Install]
+WantedBy=multi-user.target

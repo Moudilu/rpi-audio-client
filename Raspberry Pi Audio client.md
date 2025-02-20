@@ -2,14 +2,14 @@
 
 Installing on a Raspberry Pi OS Lite 64-bit
 
-Update with 
+Update with
 
 ```bash
 sudo apt update
 sudo apt upgrade
 ```
 
-Clone this repository with 
+Clone this repository with
 
 ```bash
 sudo apt install git
@@ -24,7 +24,16 @@ Some of the following commands assume that you are in the folder `rpi-audio-clie
 ```bash
 sudo rm /etc/sudoers.d/010_pi-nopasswd
 ```
-Installing on a Raspberry Pi OS Lite 64-bit (Released 2023-05-03)
+
+## Set hostname
+
+Set the name of your device with the following command. It will be used to identify it with e.g. Spotify, Snapcast or Bluetooth. No format restrictions apply, appropriate reformatting will automatically be done.
+
+```bash
+read -p "Enter desired hostname: " HOSTNAME
+sudo hostnamectl hostname "$HOSTNAME"
+sudo hostnamectl --pretty hostname "$HOSTNAME"
+```
 
 ## Turn off LEDs
 
@@ -47,7 +56,7 @@ echo "dtoverlay=gpio-fan,gpiopin=18,temp=80000" | sudo tee -a /boot/firmware/con
 
 Connect the fan like this:
 
-```                                                  
+```
                    +5V                                                  
                     ^                                                   
                     |                                                   
@@ -107,15 +116,17 @@ https://github.com/dtcooper/raspotify/wiki/Basic-Setup-Guide
 sudo apt-get -y install curl && curl -sL https://dtcooper.github.io/raspotify/install.sh | sh
 ```
 
-Configure device name, bitrate etc
+Configure device name, bitrate etc. Should be run only once. Otherwhise exit the file manually, removing the last bit.
 
 ```bash
 sudo tee -a /etc/raspotify/conf << EOF
+
+# Custom settings
 LIBRESPOT_AUTOPLAY=off
-LIBRESPOT_NAME="$(hostname)"
+LIBRESPOT_NAME="$(hostnamectl --pretty)"
 LIBRESPOT_BITRATE="320"
 LIBRESPOT_DEVICE_TYPE="avr"
-LIBRESPOT_DEVICE="hw:CARD=${DEVICE}"
+LIBRESPOT_DEVICE="plughw:CARD=${DEVICE}"
 LIBRESPOT_FORMAT="S32"
 #Use Alsa Mixer
 #LIBRESPOT_MIXER="alsa"
@@ -285,7 +296,6 @@ sudo install ./audio-client/hk970.toml /etc/rc_keymaps
 sudo reboot
 ```
 
-
 Commands that may or may not help in finding and testing those keymaps:
 
 ```bash
@@ -296,13 +306,12 @@ irsend -# 11 SEND_ONCE HK970 KEY_VOLUMEUP
 
 ## Python script controlling output devices
 
-Install dependencies.
-Could also avoid depending on python lirc by using system calls instead
 ```bash
-sudo apt install -y python3-pip
-
-cd OutputDeviceController
-python3 -m venv .venv
-source .venv/bin/activate
-pip install lirc
+sudo apt install pipx
+sudo PIPX_HOME=/opt/pipx PIPX_BIN_DIR=/usr/local/bin pipx install git+https://github.com/Moudilu/audio_controller.git
+sudo install ./audio-client/audio-controller.service /etc/systemd/system
+sudo systemctl daemon-reload
+sudo systemctl enable --now audio-controller
 ```
+
+To update the audio-controller project, run `sudo PIPX_HOME=/opt/pipx PIPX_BIN_DIR=/usr/local/bin pipx upgrade git+https://github.com/Moudilu/audio_controller.git` or `sudo PIPX_HOME=/opt/pipx PIPX_BIN_DIR=/usr/local/bin pipx upgrade-all` to upgrade any global pipx packages.
