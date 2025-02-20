@@ -139,98 +139,34 @@ sudo systemctl restart raspotify
 
 ## Bluetooth sink
 
-https://github.com/arkq/bluez-alsa/wiki/Installation-from-source
-
-For Mixer control, see https://github.com/arkq/bluez-alsa/blob/master/doc/bluealsa-aplay.1.rst
-
-For commands, see https://scribles.net/controlling-bluetooth-audio-on-raspberry-pi/ for reference
+Add service to play audio via bluetooth.
 
 ```bash
-# Instal dependencies
-sudo apt-get -y install git automake build-essential libtool pkg-config python3-docutils
-sudo apt-get -y install libasound2-dev libbluetooth-dev libdbus-1-dev libglib2.0-dev libsbc-dev
-
-sudo apt-get -y install libopenaptx-dev bash-completion dbus libasound2 libbluetooth3 libglib2.0-0 libopenaptx0 libsbc1 libspandsp-dev libspandsp2
-
-# Build AAC library
-sudo apt-get -y install cmake
-cd ~
-git clone https://github.com/mstorsjo/fdk-aac.git
-cd fdk-aac
-./autogen.sh 
-mkdir build
-cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release
-cmake --build . --config Release
-sudo cmake --install ./
-sudo ldconfig
-
-# Build BlueZALSA
-cd ~
-git clone https://github.com/Arkq/bluez-alsa.git
-cd bluez-alsa
-autoreconf --install --force
-mkdir build
-cd build
-
-# create system user for services for additional security
-sudo adduser --system --group --no-create-home bluealsa
-sudo adduser --system --group --no-create-home bluealsa-aplay
-sudo adduser bluealsa-aplay audio
-sudo adduser bluealsa bluetooth
-
-../configure --enable-aac --enable-aptx --enable-aptx-hd --with-libopenaptx --enable-msbc --enable-a2dpconf --enable-cli --with-bash-completion --enable-systemd --with-bluealsauser=bluealsa --with-bluealsaaplayuser=bluealsa-aplay
-make
-sudo make install
-
-# change the options
-sudo sh -c "cat >/etc/systemd/system/bluealsa-aplay.service.d/override.conf" << 'EOL'
+sudo apt install libasound2-plugin-bluez bluez-alsa-utils
+sudo mkdir -p /etc/systemd/system/bluealsa-aplay.service.d
+sudo tee /etc/systemd/system/bluealsa-aplay.service.d/override.conf << EOF
 [Service]
 ExecStart=
-ExecStart=/usr/bin/bluealsa-aplay -S --pcm=plughw:CARD=E30 --mixer-device=hw:CARD=E30 --mixer-name=E30\x20
-EOL
-sudo sh -c "cat >/etc/systemd/system/bluealsa.service.d/override.conf" << 'EOL'
+ExecStart=/usr/bin/bluealsa-aplay --pcm=plughw:CARD=${DEVICE} --mixer-device=hw:CARD=${DEVICE} --mixer-name=${DEVICE}
+
+EOF
+sudo mkdir -p /etc/systemd/system/bluealsa.service.d
+sudo tee /etc/systemd/system/bluealsa.service.d/override.conf << EOF
 [Service]
 ExecStart=
-ExecStart=/usr/bin/bluealsa -S --keep-alive=5 -p a2dp-sink --a2dp-volume -c AAC -c aptX -c aptX-HD
-EOL
+ExecStart=/usr/bin/bluealsa --keep-alive=5 -p a2dp-sink --a2dp-volume
+
+EOF
 
 sudo systemctl daemon-reload
-sudo systemctl enable bluealsa
-sudo systemctl enable bluealsa-aplay
-
-# For pairing with a simple pin, use a script of bluez test scripts
-#TODO: Doesn't work. Maybe starts too early?
-sudo mkdir /opt/bluetooth-pairing
-cd /opt/bluetooth-pairing
-sudo apt-get -y install bluez-test-scripts
-sudo cp /usr/share/doc/bluez-test-scripts/examples/simple-agent fixed-pin-agent
-sudo cp /usr/share/doc/bluez-test-scripts/examples/bluezutils.py bluezutils.py
-sudo sed -i 's/return ask("Enter PIN Code: ")/return "6353"/g' fixed-pin-agent
-
-sudo apt-get -y install pip
-sudo pip install dbus-python
-sudo apt install libgirepository1.0-dev gcc libcairo2-dev pkg-config python3-dev
-sudo pip3 install pycairo
-sudo pip3 install PyGObject
-
-sudo sh -c "cat >btscript.sh" << 'EOL'
-#!/bin/sh
-result=`ps aux | grep -i "simple-agent" | grep -v "grep" | wc -l`
-if [ $result -ge 0 ]; then
-    sudo hciconfig hci0 piscan
-    sudo hciconfig hci0 sspmode 0
-    sudo /usr/bin/python /opt/bluetooth-pairing/fixed-pin-agent &
-else
-    echo "BT Agent already started" 
-fi
-EOL
-
-sudo chmod +x btscript.sh
-sudo sed -i 's|exit 0|#Start BT pairing agent\n/opt/bluetooth-pairing/btscript.sh\n\nexit 0|g' /etc/rc.local
-
-sudo reboot
+sudo systemctl restart bluealsa
+sudo systemctl restart bluealsa-aplay
 ```
+
+Now, phones can be connected according to https://github.com/arkq/bluez-alsa/wiki/Bluetooth-Pairing-And-Connecting#bluealsa-host-as-responder, it should be possible to stream media. Maybe reboot needed.
+
+  
+Possibly helps with mpris: <https://git.kernel.org/pub/scm/bluetooth/bluez.git/tree/test/example-player>
 
 ## Enable automatic upgrades
 
