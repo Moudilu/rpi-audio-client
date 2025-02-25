@@ -242,10 +242,13 @@ irsend -# 11 SEND_ONCE HK970 KEY_VOLUMEUP
 
 ## Python script controlling output devices
 
+Install https://github.com/Moudilu/audio_controller as per the instructions of the project.
+
 ```bash
 sudo apt install pipx
 sudo PIPX_HOME=/opt/pipx PIPX_BIN_DIR=/usr/local/bin pipx install git+https://github.com/Moudilu/audio_controller.git
-sudo install ./audio-client/audio-controller.service /etc/systemd/system
+sudo useradd -r audio-controller
+sudo wget -O /etc/systemd/system/audio-controller.service https://github.com/Moudilu/audio_controller/raw/refs/heads/main/resources/audio-controller.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now audio-controller
 ```
