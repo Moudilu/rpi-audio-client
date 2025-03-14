@@ -74,6 +74,25 @@ Connect the fan like this:
 (created by AACircuit.py © 2020 JvO) 
 ```
 
+## Install Prometheus exporter
+
+If you want and have a Prometheus instance running elsewhere, you can install an exporter on this machine to monitor it.
+
+```bash
+sudo apt install prometheus-node-exporter
+# Add additional collectors to node exporter
+sudo sed -i 's/ARGS="/ARGS="--collector.systemd /' /etc/default/prometheus-node-exporter
+sudo systemctl restart prometheus-node-exporter
+```
+
+Then, in the Prometheus config of your monitoring instance, add something like the following lines to the `scrape_configs` and reload the config of the Prometheus service:
+
+```yaml
+  - job_name: "node <name of your Pi>"
+    static_configs:
+      - targets: ['<hostname or IP of your Pi>:9100']
+```
+
 ## Set default ALSA output
 
 Set the default sound card:
