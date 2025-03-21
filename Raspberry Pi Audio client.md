@@ -1,5 +1,7 @@
 # Raspberry Pi Audio Client Installation notes
 
+## System setup
+
 Installing on a Raspberry Pi OS Lite 64-bit
 
 Update with
@@ -12,20 +14,33 @@ sudo apt upgrade
 Clone this repository with
 
 ```bash
-sudo apt install git
+sudo apt install -y git
 git clone https://github.com/Faebu93/rpi-audio-client.git
 cd rpi-audio-client
 ```
 
 Some of the following commands assume that you are in the folder `rpi-audio-client`.
 
-## Disable passwordless sudo
+### Disable passwordless sudo
 
 ```bash
 sudo rm /etc/sudoers.d/010_pi-nopasswd
 ```
 
-## Set hostname
+
+### Enable automatic upgrades
+
+```bash
+sudo apt install -y unattended-upgrades
+sudo tee /etc/apt/apt.conf.d/60UnattendedUpgardesUser << 'EOF'
+Unattended-Upgrade::Origins-Pattern {
+    "origin=Raspberry Pi Foundation,codename=${distro_codename}";
+    "codename=raspotify"
+}
+EOF
+```
+
+### Set hostname
 
 Set the name of your device with the following command. It will be used to identify it with e.g. Spotify, Snapcast or Bluetooth. No format restrictions apply, appropriate reformatting will automatically be done.
 
@@ -35,7 +50,7 @@ sudo hostnamectl hostname "$HOSTNAME"
 sudo hostnamectl --pretty hostname "$HOSTNAME"
 ```
 
-## Turn off LEDs
+### Turn off LEDs
 
 https://n.ethz.ch/~dbernhard/disable-led-on-a-raspberry-pi.html
 
@@ -46,7 +61,7 @@ sudo systemctl enable disable-led.service
 sudo systemctl start disable-led.service
 ```
 
-## Enable the fan
+### Enable the fan
 
 This enables the fan on pin 18 when temperature exceeds 80°C.
 
@@ -74,12 +89,12 @@ Connect the fan like this:
 (created by AACircuit.py © 2020 JvO) 
 ```
 
-## Install Prometheus exporter
+### Install Prometheus exporter
 
 If you want and have a Prometheus instance running elsewhere, you can install an exporter on this machine to monitor it.
 
 ```bash
-sudo apt install prometheus-node-exporter
+sudo apt install -y prometheus-node-exporter
 # Add additional collectors to node exporter
 sudo sed -i 's/ARGS="/ARGS="--collector.systemd /' /etc/default/prometheus-node-exporter
 sudo systemctl restart prometheus-node-exporter
@@ -108,7 +123,9 @@ sudo ln -s ~/.asoundrc /etc/asound.conf
 
 Check and set the volume to 100% with `alsamixer`.
 
-## Snapcast client
+## Install audio clients
+
+### Snapcast client
 
 TODO: Choose mixer via Snapclient opts, see https://github.com/badaix/snapcast/issues/318#issuecomment-625742834
 
@@ -118,16 +135,16 @@ source /etc/os-release
 echo "deb http://deb.debian.org/debian $VERSION_CODENAME-backports main" | sudo tee /etc/apt/sources.list.d/backports.list
 sudo apt update
 
-sudo apt install -t $VERSION_CODENAME-backports snapclient
+sudo apt install -y -t $VERSION_CODENAME-backports snapclient
 
 # Find name or number of the soundcard with snapclient -l
-echo "SNAPCLIENT_OPTS=\"--soundcard plughw:CARD=$DEVICE --host 192.168.0.20\"" | sudo tee /etc/default/snapclient
+echo "SNAPCLIENT_OPTS=\"--host 192.168.0.20 \"" | sudo tee /etc/default/snapclient
 # TODO: Mixer argument (is default software, maybe HW?)
 
 sudo systemctl restart snapclient
 ```
 
-## Spotify Connect client
+### Spotify Connect client
 
 https://github.com/dtcooper/raspotify/wiki/Basic-Setup-Guide
 
@@ -145,7 +162,7 @@ LIBRESPOT_AUTOPLAY=off
 LIBRESPOT_NAME="$(hostnamectl --pretty)"
 LIBRESPOT_BITRATE="320"
 LIBRESPOT_DEVICE_TYPE="avr"
-LIBRESPOT_DEVICE="plughw:CARD=${DEVICE}"
+#LIBRESPOT_DEVICE="plughw:CARD=${DEVICE}"
 LIBRESPOT_FORMAT="S32"
 #Use Alsa Mixer
 #LIBRESPOT_MIXER="alsa"
@@ -156,12 +173,12 @@ EOF
 sudo systemctl restart raspotify
 ```
 
-## Bluetooth sink
+### Bluetooth sink
 
 Add service to play audio via bluetooth.
 
 ```bash
-sudo apt install libasound2-plugin-bluez bluez-alsa-utils
+sudo apt install -y libasound2-plugin-bluez bluez-alsa-utils
 sudo mkdir -p /etc/systemd/system/bluealsa-aplay.service.d
 sudo tee /etc/systemd/system/bluealsa-aplay.service.d/override.conf << EOF
 [Service]
@@ -187,19 +204,8 @@ Now, phones can be connected according to https://github.com/arkq/bluez-alsa/wik
   
 Possibly helps with mpris: <https://git.kernel.org/pub/scm/bluetooth/bluez.git/tree/test/example-player>
 
-## Enable automatic upgrades
 
-```bash
-sudo apt install unattended-upgrades
-sudo tee /etc/apt/apt.conf.d/60UnattendedUpgardesUser << 'EOF'
-Unattended-Upgrade::Origins-Pattern {
-    "origin=Raspberry Pi Foundation,codename=${distro_codename}";
-    "codename=raspotify"
-}
-EOF
-```
-
-## Remote support for Harman Kardon HK970
+### Remote support for Harman Kardon HK970
 
 Wire up the IR 3.5mm in-/output of the receiver as follows:
 
@@ -241,7 +247,7 @@ sudo install ./audio-client/HK970.lirc.conf /etc/lirc/lircd.conf.d
 sudo sed -i "s/driver          = devinput/driver          = default/g" /etc/lirc/lirc_options.conf
 sudo sed -i "s|device          = auto|device          = /dev/lirc0|g" /etc/lirc/lirc_options.conf
 
-sudo apt install ir-keytable
+sudo apt install -y ir-keytable
 
 # add line to /etc/rc_maps.cfg:
 echo "*       *                        hk970.toml" | sudo tee -a /etc/rc_maps.cfg
@@ -254,17 +260,17 @@ sudo reboot
 Commands that may or may not help in finding and testing those keymaps:
 
 ```bash
-sudo apt install evtest
+sudo apt install -y evtest
 evtest
 irsend -# 11 SEND_ONCE HK970 KEY_VOLUMEUP
 ```
 
-## Python script controlling output devices
+### Python script controlling output devices
 
 Install https://github.com/Moudilu/audio_controller as per the instructions of the project.
 
 ```bash
-sudo apt install pipx
+sudo apt install -y pipx
 sudo PIPX_HOME=/opt/pipx PIPX_BIN_DIR=/usr/local/bin pipx install git+https://github.com/Moudilu/audio_controller.git
 sudo useradd -r audio-controller
 sudo wget -O /etc/systemd/system/audio-controller.service https://github.com/Moudilu/audio_controller/raw/refs/heads/main/resources/audio-controller.service
