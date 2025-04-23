@@ -23,7 +23,7 @@ Clone this repository with
 
 ```bash
 sudo apt install -y git
-git clone https://github.com/Faebu93/rpi-audio-client.git
+git clone https://github.com/Moudilu/rpi-audio-client.git
 cd rpi-audio-client
 ```
 
@@ -103,7 +103,7 @@ Connect the fan like this:
 If you want and have a Prometheus instance running elsewhere, you can install an exporter on this machine to monitor it.
 
 ```bash
-sudo apt install -y prometheus-node-exporter
+sudo apt install --no-install-recommends prometheus-node-exporter
 # Add additional collectors to node exporter
 sudo sed -i 's/ARGS="/ARGS="--collector.systemd /' /etc/default/prometheus-node-exporter
 sudo systemctl restart prometheus-node-exporter
