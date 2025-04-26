@@ -162,7 +162,7 @@ EOF
 sudo systemctl daemon-reload
 
 # Configure wireplumber and set the default node
-sudo install -Dt /etc/wireplumber/wireplumber.conf.d audio-client/80-main-embedded-audio.conf
+sudo install -Dt /etc/wireplumber/wireplumber.conf.d audio-client/80-main-embedded-audio.conf audio-client/60-device-settings.conf
 
 # Try to infer the default audio device. If there is only one other active node than the default headphones output, it probably is the one.
 DEFAULT_NODE=$(pw-dump | jq '.[].info.props."node.nick" | select(. != null)' | grep -v bcm2835)
