@@ -10,7 +10,8 @@ cd rpi-audio-client
 ## Install service
 
 ```bash
-sudo install -D -t /etc/sound-server ./sound-server/mopidy.conf ./sound-server/snapserver.conf ./sound-server/compose.yml
+sudo install -D -t /etc/sound-server ./sound-server/mopidy.conf ./sound-server/snapserver.conf ./sound-server/compose.yml ./sound-server/beets-config.yaml
+sudo install -d /var/lib/sound-server/beets
 sudo install -m 644 ./sound-server/sound-server.service /etc/systemd/system
 sudo systemctl daemon-reload
 sudo systemctl enable sound-server

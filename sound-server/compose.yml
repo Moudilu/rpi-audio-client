@@ -8,16 +8,18 @@ services:
     networks:
       snapcast-ipvlan:
         ipv4_address: 192.168.0.20
+      sound-server:
     volumes:
       - snapcast-fifos:/audio/
-      - ./snapserver.conf/:/config/snapserver.conf:ro
+      - /etc/sound-server/snapserver.conf/:/config/snapserver.conf:ro
       - snapcast-data:/data/
 
   mopidy:
     image: ghcr.io/sweisgerber/mopidy:latest
+    # image: jaedb/iris
     environment:
-      - PUID=1000 # user ID which the mopidy service will run as, needs permissions to access the music
-      - PGID=1000 # group ID which the mopidy service will run as, needs permissions to access the music
+      - PUID=33 # user ID which the mopidy service will run as, needs permissions to access the music
+      - PGID=33 # group ID which the mopidy service will run as, needs permissions to access the music
       - TZ=Europe/Zurich
       # - DOCKER_MODS=linuxserver/mods:universal-package-install
       # - INSTALL_PIP_PACKAGES=Mopidy-TuneIn
@@ -32,10 +34,26 @@ services:
       timeout: 5s
       retries: 5
     volumes:
-      - iris-data:/data/ # Iris-specific storage
-      - ./mopidy.conf:/config/mopidy.conf:ro
-      - /srv/nc-data-no-bkp/Music:/music/:ro
+      - iris-data:/data/ 
+      - /etc/sound-server/mopidy.conf:/config/mopidy.conf
       - snapcast-fifos:/tmp/snapcast-fifos
+  
+  beets:
+    image: lscr.io/linuxserver/beets:latest
+    environment:
+      - PUID=33
+      - PGID=33
+      - TZ=Europe/Zurich
+    volumes:
+      - /etc/sound-server/beets-config.yaml:/config/config.yaml:ro
+      - /var/lib/sound-server/beets:/config/data # holds the log file and the database
+      - /srv/nc-data-no-bkp/Music:/music
+      - /srv/nc-data-no-bkp/Music/Upload:/downloads
+    ports:
+      - 8337:8337
+    networks:
+      - sound-server
+    restart: unless-stopped
 
 networks:
   sound-server:

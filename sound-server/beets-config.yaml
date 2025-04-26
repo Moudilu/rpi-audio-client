@@ -1,0 +1,67 @@
+plugins: fetchart embedart convert scrub replaygain lastgenre chroma web
+directory: /music
+library: /config/data/musiclibrary.blb
+art_filename: cover # the default
+threaded: yes
+original_date: no
+per_disc_numbering: no
+
+convert:
+    auto: no
+    ffmpeg: /usr/bin/ffmpeg
+    opts: -ab 320k -ac 2 -ar 48000
+    max_bitrate: 320
+    threads: 1
+
+# TODO
+# paths:
+#     default: $albumartist/$album%aunique{}/$track - $title
+#     singleton: Non-Album/$artist - $title
+#     comp: Compilations/$album%aunique{}/$track - $title
+#     albumtype_soundtrack: Soundtracks/$album/$track $title 
+        
+import:
+    write: no # don't write tags to files (yet)
+    copy: no # don't move files around (yet)
+    move: no
+    resume: yes # always resume import without asking
+    incremental: yes
+    quiet_fallback: skip
+    timid: no
+    log: /config/data/beet.log
+
+chroma:
+    auto: no # Don't calculate the fingerprint by default (speeds things up)
+
+lastgenre:
+    auto: yes
+    source: album
+
+embedart:
+    auto: no # Don't embed albumarts into the metadata
+
+fetchart:
+    auto: yes
+    
+replaygain:
+    auto: no # Don't automatically analyse the replay gain during import
+
+scrub:
+    auto: no # Don't remove non-beets metadata
+
+replace:
+    '^\.': _
+    '[\x00-\x1f]': _
+    '[<>:"\?\*\|]': _
+    '[\xE8-\xEB]': e
+    '[\xEC-\xEF]': i
+    '[\xE2-\xE6]': a
+    '[\xF2-\xF6]': o
+    '[\xF8]': o
+    '\.$': _
+    '\s+$': ''
+
+web:
+    host: 0.0.0.0
+    port: 8337
+
