@@ -49,6 +49,16 @@ Unattended-Upgrade::Origins-Pattern {
 EOF
 ```
 
+### Reboot every week
+
+Some consider it a good idea to reboot routinely. This service reboots the system every Sunday at 5am.
+
+```bash
+sudo install ./audio-client/reboot.timer /etc/systemd/system
+sudo systemctl daemon-reload
+sudo systemctl enable --now reboot.timer
+```
+
 ### Set hostname
 
 Set the name of your device with the following command. It will be used to identify it with e.g. Spotify, Snapcast or Bluetooth. No format restrictions apply, appropriate reformatting will automatically be done.
