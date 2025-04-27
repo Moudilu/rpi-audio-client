@@ -16,7 +16,8 @@ Update with
 
 ```bash
 sudo apt update
-sudo apt upgrade
+sudo apt -y upgrade
+sudo apt -y autoremove
 ```
 
 Clone this repository with
@@ -26,6 +27,8 @@ sudo apt install -y git
 git clone https://github.com/Moudilu/rpi-audio-client.git
 cd rpi-audio-client
 ```
+
+Remember to checkout the desired branch, if you are currently working on the project.
 
 Some of the following commands assume that you are in the folder `rpi-audio-client`.
 
@@ -150,11 +153,7 @@ sudo curl https://gitlab.freedesktop.org/pipewire/pipewire/-/raw/${PIPEWIRE_VERS
 curl https://gitlab.freedesktop.org/pipewire/pipewire/-/raw/${PIPEWIRE_VERSION}/src/daemon/systemd/system/pipewire.service.in | sed "s|@PW_BINARY@|$(which pipewire)|g" | sudo tee /etc/systemd/system/pipewire.service > /dev/null
 curl https://gitlab.freedesktop.org/pipewire/wireplumber/-/raw/${WIREPLUMBER_VERSION}/src/systemd/system/wireplumber.service.in | sed "s|@WP_BINARY@|$(which wireplumber)|g" | sudo tee /etc/systemd/system/wireplumber.service > /dev/null
 
-# Create user and make it use the system D-Bus
-sudo adduser --system --home /var/lib/pipewire --group pipewire
-sudo usermod -a -G audio pipewire
-# The normal user shall be allowed to play sound
-sudo usermod -a -G pipewire $(whoami)
+# Make pipewire use the system D-Bus
 sudo install -d /etc/systemd/system/pipewire.service.d
 sudo tee /etc/systemd/system/pipewire.service.d/10-dbus.conf > /dev/null << EOF
 [Service]
@@ -171,10 +170,31 @@ ExecStart=/usr/bin/wireplumber -p main-embedded-audio
 EOF
 sudo systemctl daemon-reload
 
-# Configure wireplumber and set the default node
+# Configure wireplumber
 sudo install -Dt /etc/wireplumber/wireplumber.conf.d audio-client/80-main-embedded-audio.conf audio-client/60-device-settings.conf
 
+# Create user for pipewire
+sudo adduser --system --home /var/lib/pipewire --group pipewire
+sudo usermod -a -G audio pipewire
+# The normal user shall be allowed to play sound
+sudo usermod -a -G pipewire $(whoami)
+
+# Need to restart pipewire such that it can enjoy its new privileges
+sudo systemctl restart pipewire
+
+# To apply the new user, the shell has to be reloaded (replaced with a new shell for this user)
+exec su --login $USER
+```
+
+Since this is a new shell, the next block has to be copied separately.
+
+```bash
+# Go again into the repository
+cd rpi-audio-client
+
+
 # Try to infer the default audio device. If there is only one other active node than the default headphones output, it probably is the one.
+sudo apt install -y jq
 DEFAULT_NODE=$(pw-dump | jq '.[].info.props."node.nick" | select(. != null)' | grep -v bcm2835)
 if [[ "$(echo "${DEFAULT_NODE}" | wc -l)" -ne 1 ]]; then
 echo "More than one possible default nodes"
@@ -191,6 +211,7 @@ echo "Setting \"${DEFAULT_NODE}\" as default output node"
 
 DEFAULT_NODE="${DEFAULT_NODE}" envsubst < audio-client/90-default-output-node.conf | sudo tee /etc/wireplumber/wireplumber.conf.d/90-default-output-node.conf > /dev/null
 
+# TODO: is this needed? Also, why pipewire-manager, possibly an old leftover?
 sudo systemctl enable --now pipewire.socket pipewire-manager.socket pipewire.service wireplumber.service
 ```
 
@@ -198,6 +219,7 @@ TODO:
 - Set default volume -> https://pipewire.pages.freedesktop.org/wireplumber/daemon/configuration/settings.html "device.routes.default-sink-volume"
 - Use hardware volume control instead of soft volume -> already set api.alsa.soft-mixer in 90-default-output-node.conf - does it have the desired effect?
 - Make it use all framerates the HW supports -> https://docs.pipewire.org/page_man_pipewire_conf_5.html "default.clock.allowed-rates"
+- allow only one bluetooth client to be connected at the same time
 
 ## Install audio clients
 
@@ -340,8 +362,11 @@ sudo apt install -y pipx python3-dev
 sudo PIPX_HOME=/opt/pipx PIPX_BIN_DIR=/usr/local/bin pipx install git+https://github.com/Moudilu/audio_controller.git
 sudo useradd -r audio-controller
 sudo wget -O /etc/systemd/system/audio-controller.service https://github.com/Moudilu/audio_controller/raw/refs/heads/main/resources/audio-controller.service
+sudo wget -O /etc/default/audio-controller https://github.com/Moudilu/audio_controller/raw/refs/heads/main/resources/audio-controller
+# Edit the default options to match your requirements
+sudo editor /etc/default/audio-controller
 sudo systemctl daemon-reload
 sudo systemctl enable --now audio-controller
 ```
 
-To update the audio-controller project, run `sudo PIPX_HOME=/opt/pipx PIPX_BIN_DIR=/usr/local/bin pipx upgrade git+https://github.com/Moudilu/audio_controller.git` or `sudo PIPX_HOME=/opt/pipx PIPX_BIN_DIR=/usr/local/bin pipx upgrade-all` to upgrade any global pipx packages.
+To update the audio-controller project, run `sudo PIPX_HOME=/opt/pipx PIPX_BIN_DIR=/usr/local/bin pipx upgrade moudilu-audio-controller` or `sudo PIPX_HOME=/opt/pipx PIPX_BIN_DIR=/usr/local/bin pipx upgrade-all` to upgrade any global pipx packages.
