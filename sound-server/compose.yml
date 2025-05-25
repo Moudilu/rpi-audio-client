@@ -8,7 +8,7 @@ services:
     networks:
       snapcast-ipvlan:
         ipv4_address: 192.168.0.20
-      sound-server:
+      # If another network is added mDNS seems to stop working, prob the option zeroconf-backend has to be set for librespot (via snapcast config file with &params=--zeroconf-backend%20192.168.0.20)
     volumes:
       - snapcast-fifos:/audio/
       - /etc/sound-server/snapserver.conf/:/config/snapserver.conf:ro
