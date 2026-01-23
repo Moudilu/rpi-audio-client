@@ -1,67 +1,22 @@
 services:
-  snapserver:
-    image: ghcr.io/sweisgerber/snapcast:latest
-    environment:
-      - PUID=1000
-      - PGID=1000 # set to audio group ID
-      - TZ=Europe/Zurich
-    networks:
-      snapcast-ipvlan:
-        ipv4_address: 192.168.0.20
-      # If another network is added mDNS seems to stop working, prob the option zeroconf-backend has to be set for librespot (via snapcast config file with &params=--zeroconf-backend%20192.168.0.20)
-    volumes:
-      - snapcast-fifos:/audio/
-      - /etc/sound-server/snapserver.conf/:/config/snapserver.conf:ro
-      - snapcast-data:/data/
-
-  mopidy:
-    image: ghcr.io/sweisgerber/mopidy:latest
-    # image: jaedb/iris
-    environment:
-      - PUID=33 # user ID which the mopidy service will run as, needs permissions to access the music
-      - PGID=33 # group ID which the mopidy service will run as, needs permissions to access the music
-      - TZ=Europe/Zurich
-      # - DOCKER_MODS=linuxserver/mods:universal-package-install
-      # - INSTALL_PIP_PACKAGES=Mopidy-TuneIn
-      # - INSTALL_PACKAGES=gst-plugins-bad
-    ports:
-      - 6600:6600/tcp # MPD port
-      - 6680:6680/tcp # Mopidy Web Interface
-    networks:
-      - sound-server
-    healthcheck:
-      test: curl -f http://localhost:6680/iris/http/get_config || exit 1
-      timeout: 5s
-      retries: 5
-    volumes:
-      - iris-data:/data/ 
-      - /etc/sound-server/mopidy.conf:/config/mopidy.conf
-      - snapcast-fifos:/tmp/snapcast-fifos
-  
-  beets:
-    image: lscr.io/linuxserver/beets:latest
-    environment:
-      - PUID=33
-      - PGID=33
-      - TZ=Europe/Zurich
-    volumes:
-      - /etc/sound-server/beets-config.yaml:/config/config.yaml:ro
-      - /var/lib/sound-server/beets:/config/data # holds the log file and the database
-      - /srv/nc-data-no-bkp/Music:/music
-      - /srv/nc-data-no-bkp/Music/Upload:/downloads
-    ports:
-      - 8337:8337
-    networks:
-      - sound-server
+  music-assistant-server:
+    image: ghcr.io/music-assistant/server:latest # <<< Desired release version here (or use beta to get the latest beta version)
+    container_name: music-assistant-server
     restart: unless-stopped
+    networks:
+      music-assistant:
+        ipv4_address: 192.168.0.20
+      local-caddy:
+    volumes:
+      - music-assistant-data:/data/
+      - /srv/nc-data-no-bkp/Media:/media
+    environment:
+      # Provide logging level as environment variable.
+      # default=info, possible=(critical, error, warning, info, debug)
+      - LOG_LEVEL=info
 
 networks:
-  sound-server:
-    driver: bridge
-    driver_opts:
-      com.docker.network.bridge.name: sound-server
-    name: sound-server
-  snapcast-ipvlan:
+  music-assistant:
     driver: ipvlan
     driver_opts:
       parent: enp0s31f6
@@ -71,8 +26,9 @@ networks:
       config:
         - subnet: 192.168.0.0/24
           gateway: 192.168.0.1
+  # if you are using Caddy as a reverse proxy, connect to its network
+  local-caddy:
+    external: true
 
 volumes:
-  snapcast-fifos:
-  snapcast-data:
-  iris-data:
+  music-assistant-data:

@@ -1,7 +1,8 @@
 [Unit]
 Description=Mopidy and Snapcast server
-After=docker.service
-Requires=docker.service
+After=docker.service nss-lookup.target
+Requires=docker.service nss-lookup.target
+# although the service is ordered after nss-lookup, it still sometimes complains about a misbehaving DNS server at localhost:53
 
 [Service]
 Type=simple
@@ -13,6 +14,7 @@ ExecStart=docker compose up --pull always
 # Stop container when unit is stopped
 ExecStop=docker compose down
 Restart=always
+RestartSec=5
 
 [Install]
 WantedBy=multi-user.target
