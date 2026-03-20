@@ -1,5 +1,7 @@
 # Raspberry Pi Audio Client Installation notes
 
+This is intended to be installed with some Snapserver. [Music Assistant](https://music-assistant.io) is recommended.
+
 ## Requirements
 
 For Spotify Connect to work, mDNS is required to discover the Spotify Connect clients in your network. This requires IP multicast to work, which is [poorly supported on some Wifi routers](https://superuser.com/a/733115). If either your Raspberry Pis or your clients wanting to play via Spotify Connect, make sure your router supports and is properly configured to route multicast packets to wireless clients.
