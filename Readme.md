@@ -34,6 +34,10 @@ Remember to checkout the desired branch, if you are currently working on the pro
 
 Some of the following commands assume that you are in the folder `rpi-audio-client`.
 
+### Disable WiFi
+
+If you are using ethernet and not WiFi, disable on board WiFi with `echo "dtoverlay=disable-wifi" | sudo tee -a /boot/firmware/config.txt`.
+
 ### Disable passwordless sudo
 
 ```bash
@@ -282,6 +286,12 @@ sudo systemctl restart raspotify
 ```
 
 ### Bluetooth sink
+
+The bluetooth chip on a Raspberry Pi 4 is known to not work well for audio playback. Many people have fought with it but did not get happy with it. Playback will frequently stutter and pause, s.t. it is no fun. Do yourself a favour, disable the on board bluetooth and plug in some USB BT adapter.
+
+```bash
+echo "dtoverlay=disable-bt" | sudo tee -a /boot/firmware/config.txt
+```
 
 Pipewire supports being a BT sink out of the box. Pairing is implemented through the audio_controller script installed below.
 
